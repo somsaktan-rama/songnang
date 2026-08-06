@@ -1,64 +1,358 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LINE Profile</title>
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<style>
-body { font-family: Arial; text-align:center; padding:30px; }
-img { border-radius:50%; margin-top:15px; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ร้านขนมเทียนสองนาง 1.07</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  <style>
+    button, input, select, textarea { touch-action: manipulation; }
+    body { background-color: #fcf3eb; font-family: 'Sarabun', sans-serif; padding-bottom: 90px; }
+    .header-bg { 
+      background-color: #ffe0b2; 
+      background-image: linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.7)), url('https://raw.githubusercontent.com/songnang/liff/main/songnang-bg.png'); 
+      background-size: cover; background-position: center; color: #d35400; padding: 25px 15px; border-radius: 0 0 30px 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+    }
+    .card { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; overflow: hidden; }
+    .card-header { background-color: #d35400; color: white; font-weight: bold; border-bottom: none; }
+    .btn-qty { width: 35px; height: 35px; padding: 0; border-radius: 50%; font-weight: bold; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
+    .form-control, .form-select { border-radius: 10px; border: 1px solid #ffcc80; }
+    .form-control:focus, .form-select:focus { border-color: #d35400; box-shadow: 0 0 0 0.2rem rgba(211, 84, 0, 0.25); }
+    .qty-input { border: 1px solid #ddd !important; border-radius: 5px !important; margin: 0 5px; }
+    .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px 20px; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); z-index: 1000; border-radius: 20px 20px 0 0; }
+    #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fcf3eb; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
+    #main-app { display: none; }
+    .spinner-orange { width: 3rem; height: 3rem; color: #d35400; }
+    .greeting-text { font-size: 1.1em; color: #0288d1; font-weight: bold; margin-top: 10px; background: rgba(255,255,255,0.8); padding: 5px 15px; border-radius: 20px; display: inline-block; }
+  </style>
 </head>
-
 <body>
-<h2>LINE Profile</h2>
-<div id="status">กำลังโหลด...</div>
 
-<div id="profile" style="display:none;">
-<p id="name"></p>
-<p id="userid"></p>
-<img id="picture" width="120">
-</div>
+  <div id="loading-screen">
+    <div class="spinner-border spinner-orange mb-3" role="status"></div>
+    <h4 id="loading-text" style="color: #d35400; font-weight: bold;">กำลังเชื่อมต่อระบบ...</h4>
+    <p class="text-muted small">กรุณารอสักครู่</p>
+  </div>
 
-<script>
-window.onload = async function () {
+  <div id="main-app">
+    <div class="header-bg text-center mb-4">
+      <h2 class="fw-bold mb-1"><i class="fas fa-store"></i> ร้านขนมเทียนสองนาง</h2>
+      <p class="mb-0 fw-bold">สูตรต้นตำรับ หอม หวาน อร่อย</p>
+      <div id="greeting-name" class="greeting-text">กำลังโหลดข้อมูล...</div>
+    </div>
 
-  const status = document.getElementById("status");
+    <div class="container">
+      <form id="orderForm" onsubmit="submitForm(event)">
+        <input type="hidden" id="cust_lineid" name="cust_lineid">
+        <input type="hidden" id="line_uid" name="line_uid">
+        <input type="hidden" id="total_price_hidden" name="total_price_hidden" value="0">
+        <input type="hidden" id="shipping_hidden" name="shipping_hidden" value="0">
 
-  try {
+        <div class="card">
+          <div class="card-header"><i class="fas fa-shopping-basket"></i> เลือกรายการสินค้า</div>
+          <div class="card-body p-0">
+            <div id="product-list" class="list-group list-group-flush"></div>
+            <div class="p-3 bg-light text-center border-top">
+              <span class="text-muted small">น้ำหนักขนมรวม: <strong id="slip_weight" class="text-danger">0.00</strong> กก.</span>
+            </div>
+          </div>
+        </div>
 
-    await liff.init({
-      liffId: "YOUR_LIFF_ID",
-      withLoginOnExternalBrowser: true
-    });
+        <div class="card">
+          <div class="card-header"><i class="fas fa-truck"></i> ข้อมูลการจัดส่ง</div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label fw-bold text-secondary small">วิธีรับสินค้า <span class="text-danger">*</span></label>
+              <select class="form-select fw-bold text-primary" id="deliver_method" name="deliver_method" onchange="updateCart()" required>
+                <option value="รับเองหน้าร้าน">1. รับเองหน้าร้าน</option>
+                <option value="รับเอง Rider">2. รับเอง Rider</option>
+                <option value="Rider (Lineman/Grab/LalaMove)">3. Rider (Lineman/Grab/LalaMove)</option>
+                <option value="EMS">4. EMS</option>
+              </select>
+            </div>
+            
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label fw-bold text-secondary small">วันที่รับของ</label>
+                <input type="date" class="form-control" id="deliver_date" name="deliver_date" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label fw-bold text-secondary small">เวลาที่รับของ</label>
+                <select class="form-select" name="deliver_time" required>
+                  <option value="06:00">06:00 น.</option><option value="07:00">07:00 น.</option><option value="08:00">08:00 น.</option>
+                  <option value="09:00">09:00 น.</option><option value="10:00">10:00 น.</option><option value="11:00">11:00 น.</option>
+                  <option value="12:00">12:00 น.</option><option value="13:00">13:00 น.</option><option value="14:00">14:00 น.</option>
+                  <option value="15:00">15:00 น.</option><option value="16:00">16:00 น.</option><option value="17:00">17:00 น.</option><option value="18:00">18:00 น.</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="mb-3" id="rider_shipping_box" style="display:none;">
+              <label class="form-label fw-bold text-primary small">ระบุค่าจัดส่งตามแอป (บาท) <span class="text-danger">*</span></label>
+              <input type="number" inputmode="numeric" class="form-control border-primary" id="rider_shipping_fee" placeholder="ตัวอย่าง: 65 (เก็บปลายทางใส่ 0)" oninput="updateCart()">
+            </div>
+          </div>
+        </div>
 
-    if (!liff.isLoggedIn()) {
-      liff.login();
-      return;
+        <div class="card">
+          <div class="card-header"><i class="fas fa-user-edit"></i> ข้อมูลติดต่อ / ที่อยู่</div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label fw-bold text-secondary small">เบอร์โทรศัพท์ <span class="text-danger">*</span></label>
+              <input type="tel" inputmode="numeric" pattern="[0-9\-]*" class="form-control" id="cust_phone" name="cust_phone" placeholder="08X-XXX-XXXX" oninput="handlePhoneInput(event)" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold text-secondary small">ชื่อลูกค้า <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="cust_name" name="cust_name" required>
+            </div>
+            <div class="mb-2">
+              <label class="form-label fw-bold text-secondary small">ที่อยู่จัดส่ง / หมายเหตุถึงร้าน</label>
+              <textarea class="form-control" id="cust_add" name="cust_add" rows="3" placeholder="ระบุบ้านเลขที่ ซอย ถนน แขวง เขต จังหวัด รหัสไปรษณีย์..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="bottom-bar d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-muted small fw-bold mb-1">ยอดชำระสุทธิ</div>
+            <h3 class="text-danger fw-bold mb-0" style="line-height: 1;"><span id="display_total">0</span> <small class="fs-6">฿</small></h3>
+          </div>
+          <button type="submit" id="btn-submit" class="btn btn-success fw-bold px-4 rounded-pill shadow-sm" disabled>
+            สั่งซื้อ <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // ========================================================
+    // ⚠️ ใส่ลิงก์ Web App และ LIFF ID ของคุณที่นี่
+    // ========================================================
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyQ7Q4WA4eWfFVnMLX8w4W5lzGKnroi8DyJ5QRhBVzQsv5qmMyvV2M8POlDQZEKEv1d/exec"; 
+    const LIFF_ID = "2009156099-XkhIO3sS"; 
+
+    let products = [];
+    let isDataLoaded = false;
+    let lineProfile = null;
+
+    const timeoutTimer = setTimeout(() => {
+      if (!isDataLoaded) {
+        Swal.fire({
+          icon: 'warning', title: 'การเชื่อมต่อล่าช้า',
+          text: 'ระบบทำงานหนัก หรืออินเทอร์เน็ตไม่เสถียร กรุณากดปุ่มด้านล่างเพื่อโหลดหน้าเว็บใหม่อีกครั้งครับ',
+          confirmButtonText: '<i class="fas fa-sync-alt"></i> โหลดหน้าเว็บใหม่', confirmButtonColor: '#d35400',
+          allowOutsideClick: false, allowEscapeKey: false
+        }).then((result) => { if (result.isConfirmed) window.location.reload(); });
+      }
+    }, 12000);
+
+    window.onload = async function() {
+      const tmr = new Date(); tmr.setDate(tmr.getDate() + 1);
+      document.getElementById('deliver_date').value = tmr.toISOString().split('T')[0];
+
+      try {
+        await liff.init({ liffId: LIFF_ID, withLoginOnExternalBrowser: true });
+        if (!liff.isLoggedIn()) { liff.login(); return; }
+
+        lineProfile = await liff.getProfile();
+        document.getElementById('cust_lineid').value = lineProfile.displayName; 
+        document.getElementById('line_uid').value = lineProfile.userId;
+        
+        document.getElementById('greeting-name').innerHTML = `สวัสดีคุณ <span class="text-danger">${lineProfile.displayName}</span> 💖`;
+        document.getElementById('loading-text').innerText = "กำลังดึงข้อมูลร้านค้า...";
+
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'getInitData', uid: lineProfile.userId })
+        });
+        
+        const data = await res.json();
+        if (data.status === 'success') {
+          products = data.products; 
+          renderProducts();
+
+          if(data.user && data.user.found) {
+            document.getElementById('cust_phone').value = data.user.phone;
+            document.getElementById('cust_name').value = data.user.name;
+            document.getElementById('cust_add').value = data.user.address;
+          } else {
+            document.getElementById('cust_name').value = lineProfile.displayName;
+          }
+        }
+
+        isDataLoaded = true;
+        clearTimeout(timeoutTimer);
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+
+      } catch (err) {
+        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อระบบได้ กรุณาลองใหม่อีกครั้ง', 'error');
+      }
+    };
+
+    let phoneTimeout = null;
+    function handlePhoneInput(e) {
+      let val = e.target.value.replace(/\D/g, '');
+      let formatted = !val[3] ? val : val.slice(0,3) + '-' + val.slice(3,6) + (val[6] ? '-' + val.slice(6,10) : '');
+      e.target.value = formatted;
+
+      if (val.length >= 10) {
+        clearTimeout(phoneTimeout);
+        phoneTimeout = setTimeout(() => { checkOldCustomerByPhone(val); }, 500);
+      }
     }
 
-    const profile = await liff.getProfile();
-
-    document.getElementById("name").innerText =
-      "ชื่อ: " + profile.displayName;
-
-    document.getElementById("userid").innerText =
-      "LINE ID: " + profile.userId;
-
-    if (profile.pictureUrl) {
-      document.getElementById("picture").src =
-        profile.pictureUrl;
+    async function checkOldCustomerByPhone(phoneStr) {
+      try {
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'checkPhone', phone: phoneStr })
+        });
+        const data = await res.json();
+        
+        if(data.status === 'success' && data.user.found) {
+          document.getElementById('cust_name').value = data.user.name;
+          document.getElementById('cust_add').value = data.user.address;
+          Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'พบประวัติลูกค้าจากเบอร์โทร', showConfirmButton: false, timer: 2000 });
+        }
+      } catch (err) {}
     }
 
-    document.getElementById("profile").style.display = "block";
-    status.innerText = "โหลดสำเร็จ";
+    function renderProducts() {
+      let html = '';
+      products.forEach(p => {
+        if(p.isHidden) return; 
+        let stockHtml = p.isOutOfStock 
+          ? `<div class="bg-danger text-white text-center py-1 small fw-bold rounded mt-2">สินค้าหมดชั่วคราว</div>` 
+          : `<div class="input-group input-group-sm mt-2" style="width: 140px;">
+               <button class="btn btn-outline-danger btn-qty" type="button" onclick="adjustQty('${p.id}', -1)">-</button>
+               <input type="number" inputmode="numeric" pattern="[0-9]*" class="form-control text-center fw-bold qty-input" id="${p.id}" name="${p.id}" value="0" min="0" oninput="updateCart()">
+               <button class="btn btn-outline-success btn-qty" type="button" onclick="adjustQty('${p.id}', 1)">+</button>
+             </div>`;
+        html += `<div class="list-group-item p-3"><div class="d-flex justify-content-between align-items-center"><div><h6 class="fw-bold text-dark mb-1">${p.name}</h6><div class="text-danger fw-bold">${p.price} ฿ <small class="text-muted fw-normal">/${p.unit}</small></div></div>${stockHtml}</div></div>`;
+      });
+      document.getElementById('product-list').innerHTML = html;
+    }
 
-  } catch (err) {
-    status.innerText = "ERROR: " + err.message;
-  }
-};
-</script>
+    function adjustQty(id, change) {
+      const input = document.getElementById(id);
+      let newQty = (parseInt(input.value) || 0) + change;
+      if(newQty < 0) newQty = 0; input.value = newQty; updateCart();
+    }
 
+function updateCart() {
+      let itemTotal = 0; 
+      let totalWeight = 0; 
+      let totalKheng = 0; 
+      let shippingCost = 0;
+      let method = document.getElementById('deliver_method').value;
+      
+      // 🟢 เพิ่มตัวแปรเช็คว่ามีของที่ห้ามส่ง EMS หรือไม่
+      let hasNonEmsItem = false; 
+
+      products.forEach(p => {
+        if(p.isHidden || p.isOutOfStock) return;
+        const qty = parseInt(document.getElementById(p.id).value) || 0; 
+        
+        if (qty > 0) {
+          itemTotal += qty * p.price;
+          
+          if(p.isEms) {
+            totalWeight += qty * p.weight;
+          } else {
+            hasNonEmsItem = true; // ดักเจอข้าวต้มมัด หรือ บะจ่าง
+          }
+          
+          if(p.id === 'qty_plain' || p.id === 'qty_coco') totalKheng += qty;
+        }
+      });
+
+      // 🟢 ดักจับกรณี: เลือก EMS แต่มีข้าวต้มมัด/บะจ่าง
+      if (method === 'EMS' && hasNonEmsItem) {
+        Swal.fire({ 
+          icon: 'warning', 
+          title: 'ไม่สามารถส่ง EMS ได้', 
+          text: 'ข้าวต้มมัดและบะจ่าง ไม่รับจัดส่งทางไปรษณีย์ครับ', 
+          confirmButtonColor: '#d35400' 
+        });
+        document.getElementById('deliver_method').value = "รับเองหน้าร้าน"; // บังคับกลับไปหน้าร้าน
+        updateCart(); // สั่งให้ระบบคำนวณเงินใหม่ให้ถูกต้อง
+        return; // หยุดการทำงานของรอบนี้
+      }
+
+      document.getElementById('slip_weight').innerText = (totalWeight / 1000).toFixed(2);
+      const riderBox = document.getElementById('rider_shipping_box');
+      
+      if (method === 'EMS') {
+        riderBox.style.display = 'none';
+        if(totalWeight > 0) {
+          let boxCost = totalWeight <= 3000 ? 10 : 20; let emsCost = 0;
+          if(totalWeight <= 1000) emsCost = 67; else if(totalWeight <= 1500) emsCost = 82; else if(totalWeight <= 2000) emsCost = 97;
+          else if(totalWeight <= 2500) emsCost = 105; else if(totalWeight <= 3000) emsCost = 122; else if(totalWeight <= 4000) emsCost = 145;
+          else if(totalWeight <= 5000) emsCost = 160; else if(totalWeight <= 6000) emsCost = 185; else if(totalWeight <= 7000) emsCost = 210;
+          else if(totalWeight <= 8000) emsCost = 245; else emsCost = 300;
+          shippingCost = boxCost + emsCost;
+        }
+      } else if (method === 'Raider (Lineman/Grab/LalaMove)') {
+        riderBox.style.display = 'block'; shippingCost = parseInt(document.getElementById('rider_shipping_fee').value) || 0;
+      } else {
+        riderBox.style.display = 'none'; shippingCost = 0;
+      }
+
+      let grandTotal = itemTotal + shippingCost;
+      document.getElementById('display_total').innerText = grandTotal.toLocaleString();
+      document.getElementById('total_price_hidden').value = grandTotal;
+      document.getElementById('shipping_hidden').value = shippingCost;
+
+      const btn = document.getElementById('btn-submit');
+      if (itemTotal === 0) { btn.disabled = true; } 
+      else if (totalKheng > 0 && totalKheng < 30) { btn.disabled = true; if(totalKheng > 0) Swal.fire({ icon: 'warning', title: 'สั่งขั้นต่ำไม่ถึงเกณฑ์', text: 'ขนมเข่งต้องสั่งรวมกันขั้นต่ำ 30 คู่ขึ้นไปครับ', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 }); } 
+      else if (method === 'Raider (Lineman/Grab/LalaMove)' && document.getElementById('rider_shipping_fee').value === "") { btn.disabled = true; } 
+      else { btn.disabled = false; }
+    }
+    
+    // 🟢 2. เพิ่ม Popup ให้กดยืนยันอีกครั้ง ป้องกันการเผลอกด
+    async function submitForm(e) {
+      e.preventDefault();
+      const formObj = Object.fromEntries(new FormData(document.getElementById('orderForm')).entries());
+      if (parseInt(formObj.total_price_hidden) === 0) return;
+
+      const confirmResult = await Swal.fire({
+        title: 'ยืนยันคำสั่งซื้อ?',
+        html: `ยอดชำระสุทธิของคุณคือ <b class="text-danger fs-4">${Number(formObj.total_price_hidden).toLocaleString()} บาท</b><br><span style="font-size:0.9em; color:#666;">(ตรวจสอบรายการให้ถูกต้องก่อนกดยืนยัน)</span>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#dc3545',
+        confirmButtonText: '<i class="fas fa-check-circle"></i> ยืนยันสั่งซื้อ',
+        cancelButtonText: 'ยกเลิก'
+      });
+
+      // ถ้ายกเลิก หรือ ปิด Popup ให้หยุดการทำงาน
+      if (!confirmResult.isConfirmed) {
+        return; 
+      }
+
+      Swal.fire({ title: 'กำลังส่งออเดอร์...', text: 'กรุณารอสักครู่ ระบบกำลังบันทึกข้อมูลครับ', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
+      try {
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'submitOrder', form: formObj }) 
+        });
+        const result = await res.json();
+        
+        if (result.status === 'success') {
+          Swal.fire({ icon: 'success', title: 'ส่งออเดอร์เรียบร้อย!', text: 'ใบเสร็จถูกส่งไปที่แชท LINE ของคุณแล้วครับ', confirmButtonText: 'ปิดหน้าต่าง', confirmButtonColor: '#28a745'
+          }).then(() => { liff.closeWindow(); });
+        } else Swal.fire('ข้อผิดพลาด', result.message, 'error');
+      } catch (err) { Swal.fire('ข้อผิดพลาด', 'เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ', 'error'); }
+    }
+  </script>
 </body>
 </html>
