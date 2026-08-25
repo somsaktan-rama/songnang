@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📦 ร้านขนมเทียนสองนาง 1.14</title>
+  <title>📦 ร้านขนมเทียนสองนาง 1.15</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
@@ -26,7 +26,7 @@
   <div id="main-ui" style="display: none;">
     <nav class="navbar navbar-expand-lg navbar-dark p-3">
       <div class="container-fluid">
-        <a class="navbar-brand fw-bold" href="#"><i class="fas fa-store"></i> ร้านขนมเทียนสองนาง V 1.14</a>
+        <a class="navbar-brand fw-bold" href="#"><i class="fas fa-store"></i> ร้านขนมเทียนสองนาง V 1.15</a>
         <div class="d-flex align-items-center">
           <a href="manual.html" target="_blank" class="btn btn-light btn-sm fw-bold text-danger shadow-sm rounded-pill px-3"><i class="fas fa-book"></i> คู่มือการใช้งาน</a>
         </div>
@@ -257,11 +257,11 @@
                 <tr>
                   <th>เลขที่บิล</th>
                   <th>วันที่สั่งซื้อ</th>
-                  <th>ข้อมูลลูกค้า</th> <!-- 🟢 ยุบชื่อและเบอร์โทรมาไว้ด้วยกัน -->
-                  <th>รายการสินค้า</th> <!-- 🟢 เพิ่มคอลัมน์รายการสินค้า -->
+                  <th>ข้อมูลลูกค้า</th>
+                  <th>รายการสินค้า</th>
                   <th>วันที่จัดส่ง</th>
                   <th>ยอดรวม</th>
-                  <th>สถานะ</th>
+                  <th>หมายเหตุ (Note)</th> <!-- 🟢 เปลี่ยนจาก สถานะ เป็น Note -->
                 </tr>
               </thead>
               <tbody id="history-table-body">
@@ -847,9 +847,7 @@ async function loadSettings() {
           const units = ['ลูก', 'ลูก', 'คู่', 'คู่', 'คู่', 'ลูก'];
 
           data.forEach(row => {
-             let badgeClass = String(row.payment).includes('ยืนยัน') ? 'bg-success' : 'bg-warning text-dark';
-             
-             // 🟢 ประมวลผลรายการสินค้า เพื่อจัดเรียงข้อความให้สวยงาม
+             // ประมวลผลรายการสินค้า
              let itemsDetail = '';
              for(let i=0; i<6; i++) {
                 let qty = parseInt(row.items[i]) || 0;
@@ -858,15 +856,18 @@ async function loadSettings() {
                 }
              }
              if(!itemsDetail) itemsDetail = '<span class="text-muted">-</span>';
+             
+             // 🟢 จัดการข้อความ Note (ถ้ามีให้โชว์สีแดง ถ้าไม่มีให้โชว์ขีด)
+             let noteText = row.note ? `<div class="text-danger small text-start">${row.note}</div>` : `<span class="text-muted">-</span>`;
 
              html += `<tr>
                <td class="text-muted small">${row.orderId}</td>
                <td class="small">${row.orderTime}</td>
                <td><div class="fw-bold text-dark">${row.custName}</div><div class="text-muted small">${row.phone}</div></td>
-               <td>${itemsDetail}</td> <!-- 🟢 นำรายการสินค้ามาใส่ตรงนี้ -->
+               <td>${itemsDetail}</td>
                <td class="fw-bold text-primary">${row.deliverDate} <br><small class="text-muted">${row.deliverTime}</small></td>
                <td class="fw-bold text-danger fs-6">${Number(row.totalPrice).toLocaleString()} ฿</td>
-               <td><span class="badge ${badgeClass} p-2">${row.payment}</span></td>
+               <td>${noteText}</td> <!-- 🟢 นำ Note มาใส่แทนสถานะการจ่ายเงิน -->
              </tr>`;
           });
           tbody.innerHTML = html;
