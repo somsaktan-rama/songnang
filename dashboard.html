@@ -257,11 +257,11 @@
                 <tr>
                   <th>เลขที่บิล</th>
                   <th>วันที่สั่งซื้อ</th>
-                  <th>ชื่อลูกค้า</th>
-                  <th>เบอร์โทรศัพท์</th>
+                  <th>ข้อมูลลูกค้า</th> <!-- 🟢 ยุบชื่อและเบอร์โทรมาไว้ด้วยกัน -->
+                  <th>รายการสินค้า</th> <!-- 🟢 เพิ่มคอลัมน์รายการสินค้า -->
                   <th>วันที่จัดส่ง</th>
                   <th>ยอดรวม</th>
-                  <th>สถานะการชำระเงิน</th>
+                  <th>สถานะ</th>
                 </tr>
               </thead>
               <tbody id="history-table-body">
@@ -843,15 +843,27 @@ async function loadSettings() {
           tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-folder-open fs-1 text-light mb-3 d-block"></i>ไม่พบประวัติการสั่งซื้อของลูกค้ารายนี้</td></tr>';
        } else {
           let html = '';
+          const productNames = ['เทียนเค็ม', 'เทียนหวาน', 'เข่งธรรมดา', 'เข่งมะพร้าว', 'ข้าวต้มมัด', 'บะจ่าง'];
+          const units = ['ลูก', 'ลูก', 'คู่', 'คู่', 'คู่', 'ลูก'];
+
           data.forEach(row => {
-             let statusClass = String(row.payment).includes('ยืนยัน') ? 'text-success' : 'text-warning';
              let badgeClass = String(row.payment).includes('ยืนยัน') ? 'bg-success' : 'bg-warning text-dark';
              
+             // 🟢 ประมวลผลรายการสินค้า เพื่อจัดเรียงข้อความให้สวยงาม
+             let itemsDetail = '';
+             for(let i=0; i<6; i++) {
+                let qty = parseInt(row.items[i]) || 0;
+                if(qty > 0) {
+                   itemsDetail += `<div class="text-start small mb-1 border-bottom pb-1"><i class="fas fa-caret-right text-primary"></i> ${productNames[i]} <span class="fw-bold text-dark">${qty}</span> ${units[i]}</div>`;
+                }
+             }
+             if(!itemsDetail) itemsDetail = '<span class="text-muted">-</span>';
+
              html += `<tr>
                <td class="text-muted small">${row.orderId}</td>
                <td class="small">${row.orderTime}</td>
-               <td class="fw-bold">${row.custName}</td>
-               <td>${row.phone}</td>
+               <td><div class="fw-bold text-dark">${row.custName}</div><div class="text-muted small">${row.phone}</div></td>
+               <td>${itemsDetail}</td> <!-- 🟢 นำรายการสินค้ามาใส่ตรงนี้ -->
                <td class="fw-bold text-primary">${row.deliverDate} <br><small class="text-muted">${row.deliverTime}</small></td>
                <td class="fw-bold text-danger fs-6">${Number(row.totalPrice).toLocaleString()} ฿</td>
                <td><span class="badge ${badgeClass} p-2">${row.payment}</span></td>
