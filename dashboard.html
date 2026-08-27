@@ -46,18 +46,25 @@
         <div class="tab-pane fade show active" id="pills-orders" role="tabpanel">
           <div class="card card-dashboard p-3">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-              <h5 class="fw-bold text-dark m-0"><i class="fas fa-list text-warning"></i> ออเดอร์ที่ต้องจัดส่ง (ตั้งแต่วันนี้)</h5>
+              <!-- 🟢 เพิ่ม id="table-heading" เพื่อให้เปลี่ยนข้อความตามโหมดได้ -->
+              <h5 id="table-heading" class="fw-bold text-dark m-0"><i class="fas fa-list text-warning"></i> ออเดอร์ที่ต้องจัดส่ง (ตั้งแต่วันนี้)</h5>
+              
               <div class="d-flex align-items-center flex-wrap gap-2">
-                <!-- 🟢 กล่องค้นหาประวัติลูกค้า -->
                 <div class="input-group input-group-sm shadow-sm" style="max-width: 250px;">
                   <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
                   <input type="text" id="search-history-input" class="form-control border-start-0 ps-0" placeholder="ค้นหาชื่อ หรือ เบอร์โทร..." onkeypress="if(event.key === 'Enter') searchHistory()">
                   <button class="btn btn-primary fw-bold" type="button" onclick="searchHistory()">ค้นหา</button>
                 </div>
                 
+                <!-- 🟢 เพิ่มปุ่มสลับดูออเดอร์ย้อนหลัง -->
+                <button id="btn-filter" class="btn btn-outline-secondary btn-sm fw-bold shadow-sm" onclick="toggleFilterMode()">
+                  <i class="fas fa-history"></i> ดูออเดอร์ย้อนหลัง
+                </button>
+                
                 <button id="btn-sort" class="btn btn-outline-primary btn-sm fw-bold shadow-sm" onclick="toggleSortMode()">
                   <i class="fas fa-sort-amount-down"></i> เรียงจากเวลาสั่งซื้อ
                 </button>
+                
                 <button class="btn btn-outline-secondary btn-sm fw-bold shadow-sm" onclick="loadData()">
                   <i class="fas fa-sync-alt"></i> รีเฟรช
                 </button>
