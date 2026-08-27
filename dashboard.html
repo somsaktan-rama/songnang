@@ -473,7 +473,14 @@
 
     function renderTable(data) {
       globalOrders = data; let html = '';
-      if(data.length === 0) html = '<tr><td colspan="11" class="text-center text-muted py-4">ไม่มีออเดอร์ค้างส่ง</td></tr>';
+      
+      if(data.length === 0) {
+        // 🟢 เปลี่ยนข้อความให้ตรงกับโหมดที่กำลังดูอยู่ (อดีต vs ปัจจุบัน)
+        let emptyMessage = (typeof currentFilterMode !== 'undefined' && currentFilterMode === 'past') 
+                           ? '<i class="fas fa-history text-muted fs-3 mb-2 d-block"></i> ไม่มีประวัติออเดอร์ย้อนหลัง' 
+                           : '<i class="fas fa-box-open text-muted fs-3 mb-2 d-block"></i> ไม่มีออเดอร์ค้างส่ง';
+        html = `<tr><td colspan="11" class="text-center text-muted py-5">${emptyMessage}</td></tr>`;
+      }
       else {
         data.forEach((row, index) => {
           let paidIcon = row.isPaid === "TRUE" 
@@ -498,7 +505,8 @@
         });
       }
       document.getElementById('table-body').innerHTML = html;
-      populateSumOrderDates();
+      
+      if (typeof populateSumOrderDates === "function") populateSumOrderDates();
     }
 
     // ----- การแก้ไขออเดอร์ -----
