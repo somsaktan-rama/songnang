@@ -333,8 +333,7 @@
     // 🟢 ประกาศตัวแปรเก็บสถานะการทำงาน
     let masterOrders = []; // เก็บข้อมูลดั้งเดิมทั้งหมด
     let currentFilterMode = 'upcoming'; // โหมดคัดกรอง (upcoming = วันนี้เป็นต้นไป, past = ย้อนหลัง)
-    var currentSortMode = 'deliver'; // โหมดจัดเรียง
-
+    
     // ----- ส่วนของการดึงข้อมูล -----
     async function loadData() {
       const tbody = document.getElementById('table-body');
